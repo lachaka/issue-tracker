@@ -14,21 +14,23 @@ type application struct {
 }
 
 func Init(config utils.Config) {
+	dbSession, err := cassandra.ConnectCassandra(config.Db)
+
+	appLogger := utils.Logger
+	
+	if err != nil {
+		appLogger.ErrorLog.Fatal(err)
+	}
+	
+	appLogger.InfoLog.Printf("Database connected on port %s", config.Db.Port)
+	
+	defer dbSession.Close()
+
 	app := &application {
 		appLogger: utils.Logger,
-		// users:      cql.UserModel{DB: session},
+		users:     &cql.UserModel{Session: dbSession},
 	}
-	
-	session, err := cassandra.ConnectCassandra(config.Db)
 
-	if err != nil {
-		app.appLogger.ErrorLog.Fatal(err)
-	}
-	
-	app.appLogger.InfoLog.Printf("Database connected on port %s", config.Db.Port)
-	
-	defer session.Close()
-	
 	srv := &http.Server{
 		Addr:     ":" + config.Host.Port,
 		ErrorLog: app.appLogger.ErrorLog,

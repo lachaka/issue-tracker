@@ -7,7 +7,7 @@ import (
 )
 
 type UserModel struct {
-	DB *gocql.Session
+	Session *gocql.Session
 }
 
 func (m *UserModel) Insert(title, content, expires string) (int, error) {
