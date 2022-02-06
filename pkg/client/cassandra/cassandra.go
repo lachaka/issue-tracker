@@ -8,7 +8,7 @@ import (
 
 func ConnectCassandra(config utils.CassandraConfig) (*gocql.Session, error)  {
 	consistancy, err := gocql.MustParseConsistency(config.Consistancy)
-	
+
 	if err != nil {
 		return nil, err
 	}

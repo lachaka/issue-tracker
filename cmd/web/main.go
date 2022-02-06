@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-
 func main() {
 	config := readConfig(".")
 	
@@ -27,18 +26,17 @@ func readConfig(path string) utils.Config {
     }
 
 	var config utils.Config
-
-    err = viper.Unmarshal(&config.Db)
-	if err != nil {
-		utils.Logger.ErrorLog.Fatal(err)
-	}
-	
-    err = viper.Unmarshal(&config.Host)
-	if err != nil {
-		utils.Logger.ErrorLog.Fatal(err)
-	}
+	unmarshalConfig(&config.Db)
+	unmarshalConfig(&config.Server)
 
 	utils.Logger.InfoLog.Println("File .env is read correctly")
     
 	return config
+}
+
+func unmarshalConfig(config interface{}) {
+	err := viper.Unmarshal(&config)
+	if err != nil {
+		utils.Logger.ErrorLog.Fatal(err)
+	}
 }

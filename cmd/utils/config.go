@@ -1,8 +1,8 @@
 package utils
 
 type Config struct {
-	Db   CassandraConfig
-	Host HostSettings
+	Db     CassandraConfig
+	Server ServerSettings
 }
 
 type CassandraConfig struct {
@@ -12,6 +12,7 @@ type CassandraConfig struct {
 	Consistancy string `mapstructure:"DB_CONSISTANCY"`
 }
 
-type HostSettings struct {
+type ServerSettings struct {
+	Host string `mapstructure:"HOST"`
 	Port string `mapstructure:"PORT"`
 }

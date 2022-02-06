@@ -1,43 +1,33 @@
 package api
 
 import (
-	"net/http"
-	"issue-tracker/cmd/utils"
-	"issue-tracker/pkg/models/cql"
+	utils "issue-tracker/cmd/utils"
 	"issue-tracker/pkg/client/cassandra"
+	"issue-tracker/pkg/handlers"
+	"issue-tracker/pkg/models/cql"
 	
+	"github.com/gin-gonic/gin"
 )
-
-type application struct {
-	appLogger utils.AppLogger
-	users     *cql.UserModel
-}
 
 func Init(config utils.Config) {
 	dbSession, err := cassandra.ConnectCassandra(config.Db)
-
-	appLogger := utils.Logger
 	
 	if err != nil {
-		appLogger.ErrorLog.Fatal(err)
+		utils.Logger.ErrorLog.Fatal(err)
 	}
 	
-	appLogger.InfoLog.Printf("Database connected on port %s", config.Db.Port)
+	utils.Logger.InfoLog.Printf("Database connected on port %s", config.Db.Port)
 	
 	defer dbSession.Close()
 
-	app := &application {
-		appLogger: utils.Logger,
-		users:     &cql.UserModel{Session: dbSession},
-	}
+	router := gin.Default()
 
-	srv := &http.Server{
-		Addr:     ":" + config.Host.Port,
-		ErrorLog: app.appLogger.ErrorLog,
-		// Handler:  app.routes(),
-	}
+	repository := cql.NewUserModel(dbSession)
+	userHandler := handler.NewUserHandler(&repository)
 
-	app.appLogger.InfoLog.Printf("Starting server on %s", config.Host.Port)
-	err = srv.ListenAndServe()
-	app.appLogger.ErrorLog.Fatal(err)
+
+	router.POST("api/user/", userHandler.CreateUser)
+	router.GET("api/user/:id", userHandler.GetUserById)
+
+    router.Run(config.Server.Host + ":" + config.Server.Port)
 }

@@ -5,11 +5,11 @@ import (
 )
 
 type User struct {
-	Id        gocql.UUID   `cql:"id"`
-	Firstname string       `cql:"firstname"`
-	Lastname  string       `cql:"lastname"`
-	Email     string       `cql:"email"`
-	Password  string       `cql:"password"`
-	Role      string       `cql:"role"`
-	Projects  []gocql.UUID `cql:"projects"`
+	Id        gocql.UUID   `json:"id"`
+	Firstname string       `json:"firstname"`
+	Lastname  string       `json:"lastname"`
+	Email     string       `json:"email"`
+	Password  string       `json:"password"`
+	Role      string       `json:"role"`
+	Projects  []gocql.UUID `json:"projects"`
 }
