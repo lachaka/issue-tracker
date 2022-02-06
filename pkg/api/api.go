@@ -3,20 +3,30 @@ package api
 import (
 	"net/http"
 	"issue-tracker/cmd/utils"
+	"issue-tracker/pkg/models/cql"
+	"issue-tracker/pkg/client/cassandra"
 	
-	"github.com/gocql/gocql"
 )
 
 type application struct {
 	appLogger utils.AppLogger
+	users     *cql.UserModel
 }
 
 func Init(config utils.Config) {
 	app := &application {
 		appLogger: utils.Logger,
+		// users:      cql.UserModel{DB: session},
 	}
 	
-	session := app.ConnectCassandra(config.Db)
+	session, err := cassandra.ConnectCassandra(config.Db)
+
+	if err != nil {
+		app.appLogger.ErrorLog.Fatal(err)
+	}
+	
+	app.appLogger.InfoLog.Printf("Database connected on port %s", config.Db.Port)
+	
 	defer session.Close()
 	
 	srv := &http.Server{
@@ -26,31 +36,6 @@ func Init(config utils.Config) {
 	}
 
 	app.appLogger.InfoLog.Printf("Starting server on %s", config.Host.Port)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	app.appLogger.ErrorLog.Fatal(err)
-}
-
-func (app *application) ConnectCassandra(config utils.CassandraConfig) (*gocql.Session)  {
-	consistancy := func(c string) gocql.Consistency {
-		gc, err := gocql.MustParseConsistency(c)
-		if err != nil {
-			app.appLogger.ErrorLog.Fatal(err)
-		}
-
-		return gc
-	}
-	
-	cluster := gocql.NewCluster(config.Host + ":" + config.Port)
-	cluster.Keyspace = config.Keyspace
-	cluster.Consistency = consistancy(config.Consistancy)
-
-	session, err := cluster.CreateSession()
-
-	if err != nil {
-		app.appLogger.ErrorLog.Fatal(err)
-	}
-
-	app.appLogger.InfoLog.Printf("Database connected on port %d", cluster.Port)
-
-	return session
 }

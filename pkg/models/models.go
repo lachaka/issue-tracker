@@ -1,5 +1,9 @@
 package models
 
+import (	
+	"github.com/gocql/gocql"
+)
+
 type User struct {
 	Id        gocql.UUID   `cql:"id"`
 	Firstname string       `cql:"firstname"`
