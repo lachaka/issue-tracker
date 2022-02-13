@@ -1,6 +1,7 @@
 package cql
 
 import (
+	"encoding/json"
 	"issue-tracker/pkg/models"
 
 	"github.com/gocql/gocql"
@@ -16,17 +17,26 @@ type userModel struct {
 }
 
 func NewUserModel(session *gocql.Session) UserModel {
-	return &userModel{ session: session }
+	return &userModel{session: session}
 }
 
 func (u *userModel) Save(user models.User) (*models.User, error) {
-	var query string = "INSERT INTO user(id,email) VALUES(?,?)"
+	var query string = `INSERT INTO user JSON ?`
 
-	if err := u.session.Query(query, user.Id, user.Email).Exec(); err != nil {
+	jsonString, err := json.Marshal(user)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := u.session.Query(query, jsonString).Exec(); err != nil {
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func (m *userModel) Authenticate(user models.User) (*models.User, error) {
+	return nil, nil
 }
 
 func (u *userModel) GetById(id string) (*models.User, error) {
@@ -35,11 +45,10 @@ func (u *userModel) GetById(id string) (*models.User, error) {
 	var query string = `SELECT id, email FROM user where id=?`
 
 	if err := u.session.Query(query, id).Scan(&user.Id, &user.Email); err != nil {
-
 		if err == gocql.ErrNotFound {
 			return nil, err
 		}
-		
+
 		return nil, err
 	}
 

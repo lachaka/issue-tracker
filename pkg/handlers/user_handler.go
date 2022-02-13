@@ -1,16 +1,19 @@
 package handler
 
 import (
-	"net/http"
+	utils "issue-tracker/cmd/utils"
 	"issue-tracker/pkg/models"
 	"issue-tracker/pkg/models/cql"
+	"net/http"
 
-	"github.com/gocql/gocql"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler interface {
-	CreateUser(*gin.Context)
+	Register(*gin.Context)
+	Login(*gin.Context)
+	Logout(*gin.Context)
 	GetUserById(*gin.Context)
 }
 
@@ -22,20 +25,37 @@ func NewUserHandler(userModel *cql.UserModel) UserHandler {
 	return &userHandler{userModel: *userModel}
 }
 
-func (u *userHandler) CreateUser(c *gin.Context) {
+func (u *userHandler) Register(c *gin.Context) {
 	var user models.User
+	getUser, _ := c.Get("user")
+	user = getUser.(models.User)
 
-	c.BindJSON(&user)
-	user.Id = gocql.TimeUUID()
-	
-	data, err := u.userModel.Save(user)
-
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err)
+		utils.Logger.ErrorLog.Println(err)
+		c.JSON(http.StatusInternalServerError, "invalid password")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"user": data})
+	user.Password = string(hash)
+
+	_, err = u.userModel.Save(user)
+	if err != nil {
+		utils.Logger.ErrorLog.Println(err)
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.Logger.InfoLog.Println("User created")
+	c.JSON(http.StatusCreated, gin.H{"message": "user created"})
+}
+
+func (u *userHandler) Login(c *gin.Context) {
+
+}
+
+func (u *userHandler) Logout(c *gin.Context) {
+
 }
 
 func (u *userHandler) GetUserById(c *gin.Context) {
@@ -44,6 +64,7 @@ func (u *userHandler) GetUserById(c *gin.Context) {
 
 	user, err := u.userModel.GetById(id)
 	if err != nil {
+		utils.Logger.ErrorLog.Print(err)
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
