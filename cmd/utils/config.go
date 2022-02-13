@@ -16,3 +16,7 @@ type ServerSettings struct {
 	Host string `mapstructure:"HOST"`
 	Port string `mapstructure:"PORT"`
 }
+
+type JWTSecret struct {
+	Secret string `mapstructure:"JWT_SECRET"`
+}

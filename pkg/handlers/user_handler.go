@@ -4,6 +4,7 @@ import (
 	utils "issue-tracker/cmd/utils"
 	"issue-tracker/pkg/models"
 	"issue-tracker/pkg/models/cql"
+	"issue-tracker/pkg/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,6 @@ type UserHandler interface {
 	Register(*gin.Context)
 	Login(*gin.Context)
 	Logout(*gin.Context)
-	GetUserById(*gin.Context)
 }
 
 type userHandler struct {
@@ -30,10 +30,10 @@ func (u *userHandler) Register(c *gin.Context) {
 	getUser, _ := c.Get("user")
 	user = getUser.(models.User)
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		utils.Logger.ErrorLog.Println(err)
-		c.JSON(http.StatusInternalServerError, "invalid password")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, "invalid password")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (u *userHandler) Register(c *gin.Context) {
 	_, err = u.userModel.Save(user)
 	if err != nil {
 		utils.Logger.ErrorLog.Println(err)
-		c.JSON(http.StatusInternalServerError, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -51,23 +51,34 @@ func (u *userHandler) Register(c *gin.Context) {
 }
 
 func (u *userHandler) Login(c *gin.Context) {
+	var user models.User
+	c.BindJSON(&user)
 
+	userData, err := u.userModel.GetByEmail(user.Email)
+
+	if err != nil {
+		utils.Logger.ErrorLog.Println(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(userData.Password), []byte(user.Password)); err != nil {
+		utils.Logger.ErrorLog.Println(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Wrong password"})
+		return
+	}
+
+	token, err := service.JWTAuthService().GenerateToken(user)
+
+	if err != nil {
+		utils.Logger.ErrorLog.Println(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Wrong password"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"token": token})
 }
 
 func (u *userHandler) Logout(c *gin.Context) {
 
-}
-
-func (u *userHandler) GetUserById(c *gin.Context) {
-
-	id := c.Param("id")
-
-	user, err := u.userModel.GetById(id)
-	if err != nil {
-		utils.Logger.ErrorLog.Print(err)
-		c.JSON(http.StatusBadRequest, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"user": user})
 }

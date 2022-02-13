@@ -2,6 +2,7 @@ package cql
 
 import (
 	"encoding/json"
+	"errors"
 	"issue-tracker/pkg/models"
 
 	"github.com/gocql/gocql"
@@ -9,7 +10,7 @@ import (
 
 type UserModel interface {
 	Save(user models.User) (*models.User, error)
-	GetById(id string) (*models.User, error)
+	GetByEmail(email string) (*models.User, error)
 }
 
 type userModel struct {
@@ -20,7 +21,32 @@ func NewUserModel(session *gocql.Session) UserModel {
 	return &userModel{session: session}
 }
 
+func (u *userModel) registeredEmail(email string) (bool, error) {
+	var query string = `SELECT COUNT(*) FROM user WHERE email=? ALLOW FILTERING`
+	var emailCount int
+
+	if err := u.session.Query(query, email).Scan(&emailCount); err != nil {
+		if err == gocql.ErrNotFound {
+			return false, err
+		}
+
+		return false, err
+	}
+
+	if emailCount != 0 {
+		return true, errors.New("Email already registered")
+	}
+
+	return false, nil
+}
+
 func (u *userModel) Save(user models.User) (*models.User, error) {
+	_, err := u.registeredEmail(user.Email)
+
+	if err != nil {
+		return nil, err
+	}
+
 	var query string = `INSERT INTO user JSON ?`
 
 	jsonString, err := json.Marshal(user)
@@ -35,20 +61,22 @@ func (u *userModel) Save(user models.User) (*models.User, error) {
 	return &user, nil
 }
 
-func (m *userModel) Authenticate(user models.User) (*models.User, error) {
-	return nil, nil
-}
-
-func (u *userModel) GetById(id string) (*models.User, error) {
+func (u *userModel) GetByEmail(email string) (*models.User, error) {
 	var user models.User
 
-	var query string = `SELECT id, email FROM user where id=?`
+	var query string = `SELECT * FROM user where email=? ALLOW FILTERING`
+	res := make(map[string]interface{})
+	err := u.session.Query(query, email).MapScan(res)
+	if err != nil {
+		return nil, errors.New("User not found")
+	}
 
-	if err := u.session.Query(query, id).Scan(&user.Id, &user.Email); err != nil {
-		if err == gocql.ErrNotFound {
-			return nil, err
-		}
+	jsonStr, err := json.Marshal(res)
+	if err != nil {
+		return nil, err
+	}
 
+	if err := json.Unmarshal(jsonStr, &user); err != nil {
 		return nil, err
 	}
 
