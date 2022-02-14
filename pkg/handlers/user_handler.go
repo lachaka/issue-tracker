@@ -68,7 +68,7 @@ func (u *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := service.JWTAuthService().GenerateToken(user)
+	token, err := service.JWTAuthService().GenerateToken(*userData)
 
 	if err != nil {
 		utils.Logger.ErrorLog.Println(err)
@@ -80,5 +80,5 @@ func (u *userHandler) Login(c *gin.Context) {
 }
 
 func (u *userHandler) Logout(c *gin.Context) {
-
+	c.Status(http.StatusOK)
 }

@@ -70,6 +70,7 @@ func (u *userModel) GetByEmail(email string) (*models.User, error) {
 	if err != nil {
 		return nil, errors.New("User not found")
 	}
+	u.session.Query(query, email).MapScan(res)
 
 	jsonStr, err := json.Marshal(res)
 	if err != nil {
