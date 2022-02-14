@@ -13,3 +13,11 @@ type User struct {
 	Role      string       `json:"role"`
 	Projects  []gocql.UUID `json:"projects"`
 }
+
+type Project struct {
+	Id          gocql.UUID   `json:"id"`
+	description string       `json:"description"`
+	title       string       `json:"title"`
+	tickets     []gocql.UUID `json:"tickets"`
+	users       []gocql.UUID `json:"users"`
+}
