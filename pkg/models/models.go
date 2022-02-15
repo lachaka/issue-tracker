@@ -16,8 +16,8 @@ type User struct {
 
 type Project struct {
 	Id          gocql.UUID   `json:"id"`
-	description string       `json:"description"`
-	title       string       `json:"title"`
-	tickets     []gocql.UUID `json:"tickets"`
-	users       []gocql.UUID `json:"users"`
+	Description string       `json:"description"`
+	Title       string       `json:"title"`
+	Tickets     []gocql.UUID `json:"tickets"`
+	Users       []gocql.UUID `json:"users"`
 }
