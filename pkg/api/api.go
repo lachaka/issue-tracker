@@ -23,13 +23,36 @@ func Init(config utils.Config) {
 
 	router := gin.Default()
 
-	repository := cql.NewUserModel(dbSession)
-	userHandler := handler.NewUserHandler(&repository)
+	userRep := cql.NewUserModel(dbSession)
+	userHandler := handler.NewUserHandler(&userRep)
+
+	projRep := cql.NewProjectModel(dbSession)
+	projectHandler := handler.NewProjectHandler(&projRep)
 
 	router.POST("api/user/register", middleware.ValidateUserData(), userHandler.Register)
 	router.POST("api/user/login", userHandler.Login)
 	router.POST("api/user/logout", middleware.Authorization(dbSession), userHandler.Logout)
-	router.GET("api/users", middleware.Authorization(dbSession), middleware.ValidateUserRole("admin"), userHandler.GetUsers)
+	router.GET("api/users", middleware.Authorization(dbSession),
+		middleware.ValidateUserRole([]string{"admin"}),
+		userHandler.GetUsers)
+
+	router.POST("api/project", middleware.Authorization(dbSession),
+		middleware.ValidateUserRole([]string{"admin"}),
+		projectHandler.CreateProject)
+
+	router.PUT("api/project/:id", middleware.Authorization(dbSession),
+		middleware.ValidateUserRole([]string{"admin", "pm"}),
+		projectHandler.UpdateProject)
+
+	router.DELETE("api/project/:id", middleware.Authorization(dbSession),
+		middleware.ValidateUserRole([]string{"admin"}),
+		projectHandler.DeleteProject)
+
+	router.GET("api/project/:id", middleware.Authorization(dbSession),
+		projectHandler.GetProject)
+
+	router.GET("api/projects", middleware.Authorization(dbSession),
+		projectHandler.GetAllProjects)
 
 	router.Run(config.Server.Host + ":" + config.Server.Port)
 }
