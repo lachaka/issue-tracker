@@ -28,7 +28,8 @@ func Init(config utils.Config) {
 
 	router.POST("api/user/register", middleware.ValidateUserData(), userHandler.Register)
 	router.POST("api/user/login", userHandler.Login)
-	router.POST("api/user/logout", middleware.Authorization(), userHandler.Logout)
+	router.POST("api/user/logout", middleware.Authorization(dbSession), userHandler.Logout)
+	router.GET("api/users", middleware.Authorization(dbSession), middleware.ValidateUserRole("admin"), userHandler.GetUsers)
 
 	router.Run(config.Server.Host + ":" + config.Server.Port)
 }

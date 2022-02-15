@@ -11,6 +11,7 @@ import (
 type UserModel interface {
 	Save(user models.User) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
+	GetUsers() ([]map[string]interface{}, error)
 }
 
 type userModel struct {
@@ -62,15 +63,19 @@ func (u *userModel) Save(user models.User) (*models.User, error) {
 }
 
 func (u *userModel) GetByEmail(email string) (*models.User, error) {
+	return GetByEmail(email, u.session)
+}
+
+func GetByEmail(email string, session *gocql.Session) (*models.User, error) {
 	var user models.User
 
 	var query string = `SELECT * FROM user where email=? ALLOW FILTERING`
+
 	res := make(map[string]interface{})
-	err := u.session.Query(query, email).MapScan(res)
+	err := session.Query(query, email).MapScan(res)
 	if err != nil {
 		return nil, errors.New("User not found")
 	}
-	u.session.Query(query, email).MapScan(res)
 
 	jsonStr, err := json.Marshal(res)
 	if err != nil {
@@ -82,4 +87,20 @@ func (u *userModel) GetByEmail(email string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (u *userModel) GetUsers() ([]map[string]interface{}, error) {
+	var query string = `SELECT id, email, firstname, lastname, projects, role FROM user`
+
+	iter := u.session.Query(query).Iter()
+	defer iter.Close()
+
+	ret := []map[string]interface{}{}
+	m := &map[string]interface{}{}
+	for iter.MapScan(*m) {
+		ret = append(ret, *m)
+		m = &map[string]interface{}{}
+	}
+
+	return ret, nil
 }

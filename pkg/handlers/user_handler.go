@@ -15,6 +15,7 @@ type UserHandler interface {
 	Register(*gin.Context)
 	Login(*gin.Context)
 	Logout(*gin.Context)
+	GetUsers(*gin.Context)
 }
 
 type userHandler struct {
@@ -81,4 +82,14 @@ func (u *userHandler) Login(c *gin.Context) {
 
 func (u *userHandler) Logout(c *gin.Context) {
 	c.Status(http.StatusOK)
+}
+
+func (u *userHandler) GetUsers(c *gin.Context) {
+	data, err := u.userModel.GetUsers()
+
+	if err != nil {
+		c.Status(http.StatusBadRequest)
+	}
+
+	c.JSON(http.StatusOK, data)
 }

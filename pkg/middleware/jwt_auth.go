@@ -1,16 +1,17 @@
 package middleware
 
 import (
-	"fmt"
 	"issue-tracker/cmd/utils"
+	"issue-tracker/pkg/models/cql"
 	"issue-tracker/pkg/service"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/gocql/gocql"
 )
 
-func Authorization() gin.HandlerFunc {
+func Authorization(session *gocql.Session) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const BEARER_SCHEMA = "Bearer "
 		authHeader := c.GetHeader("Authorization")
@@ -19,7 +20,14 @@ func Authorization() gin.HandlerFunc {
 
 		if token.Valid {
 			claims := token.Claims.(jwt.MapClaims)
-			fmt.Println(claims)
+
+			user, err := cql.GetByEmail(claims["email"].(string), session)
+			if err != nil {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
+			c.Set("user", user)
 			c.Next()
 		} else {
 			utils.Logger.ErrorLog.Println(err)
